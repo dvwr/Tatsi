@@ -28,7 +28,7 @@ final internal class AssetsGridViewController: UICollectionViewController, Picke
     
     internal fileprivate(set) var selectedAssets = [PHAsset]() {
         didSet {
-            self.reloadDoneButtonState()
+            setupBarButtonItems()
         }
     }
     
@@ -93,6 +93,15 @@ final internal class AssetsGridViewController: UICollectionViewController, Picke
         }
     }
     
+    lazy fileprivate var cancelButton: UIBarButtonItem = {
+        let buttonitem = self.pickerViewController?.customCancelButtonItem() ?? UIBarButtonItem(barButtonSystemItem: .cancel, target: nil, action: nil)
+        buttonitem.target = self
+        buttonitem.action = #selector(AssetsGridViewController.cancel(_:))
+        buttonitem.accessibilityIdentifier = "tatsi.button.cancel"
+        return buttonitem
+    }()
+
+    
     lazy fileprivate var doneButton: UIBarButtonItem = {
         let buttonitem = self.pickerViewController?.customDoneButtonItem() ?? UIBarButtonItem(barButtonSystemItem: .done, target: nil, action: nil)
         buttonitem.target = self
@@ -128,21 +137,19 @@ final internal class AssetsGridViewController: UICollectionViewController, Picke
         
         self.collectionView?.allowsMultipleSelection = true
         
-        self.navigationItem.rightBarButtonItem = self.doneButton
+        setupBarButtonItems()
         
         NotificationCenter.default.addObserver(self, selector: #selector(AssetsGridViewController.applicationDidBecomeActive(_:)), name: UIApplication.didBecomeActiveNotification, object: nil)
     }
     
+    var shouldHaveLeftCancelButton: Bool {
+        return self.navigationController?.viewControllers.first == self && self.presentingViewController != nil
+    }
+    
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        let isRootModalViewController = self.navigationController?.viewControllers.first == self && self.presentingViewController != nil
         
-        let cancelButtonItem = self.pickerViewController?.customCancelButtonItem() ?? UIBarButtonItem(barButtonSystemItem: .cancel, target: nil, action: nil)
-        cancelButtonItem.target = self
-        cancelButtonItem.action = #selector(cancel(_:))
-        cancelButtonItem.accessibilityIdentifier = "tatsi.button.cancel"
-        
-        self.navigationItem.leftBarButtonItem = isRootModalViewController ? cancelButtonItem : nil
+        self.navigationItem.leftBarButtonItem = shouldHaveLeftCancelButton ? cancelButton : nil
     }
     
     // MARK: - Accessibility
@@ -198,13 +205,13 @@ final internal class AssetsGridViewController: UICollectionViewController, Picke
     // MARK: - Albums list management
     
     fileprivate func showAlbumsViews(animator: UIViewPropertyAnimator) {
-        guard self.children.isEmpty else {
+        guard children.isEmpty else {
             return
         }
         let albumsViewController = AlbumsViewController()
         albumsViewController.delegate = self
 
-        self.addChild(albumsViewController)
+        addChild(albumsViewController)
         var frame = self.view.bounds
         frame.origin.y -= frame.height
         albumsViewController.view.frame = frame
@@ -215,7 +222,7 @@ final internal class AssetsGridViewController: UICollectionViewController, Picke
             albumsViewController.tableView.contentInset = self.collectionView?.contentInset ?? UIEdgeInsets()
             albumsViewController.tableView.scrollIndicatorInsets = self.collectionView?.contentInset ?? UIEdgeInsets()
         }
-        self.view.addSubview(albumsViewController.view)
+        view.addSubview(albumsViewController.view)
         albumsViewController.didMove(toParent: self)
         
         animator.addAnimations {
@@ -226,18 +233,18 @@ final internal class AssetsGridViewController: UICollectionViewController, Picke
     }
     
     fileprivate func hideAlbumsViews(animator: UIViewPropertyAnimator) {
-        guard let albumsViewController = self.children.first as? AlbumsViewController else {
+        guard let albumsViewController = children.first as? AlbumsViewController else {
             return
         }
         animator.addAnimations {
             self.navigationItem.leftBarButtonItem?.isEnabled = true
-            self.reloadDoneButtonState()
+            self.setupBarButtonItems()
             
             var frame = self.view.bounds
             frame.origin.y -= frame.height
             albumsViewController.view.frame = frame
         }
-        animator.addCompletion { (_) in
+        animator.addCompletion { _ in
             albumsViewController.removeFromParent()
             albumsViewController.view.removeFromSuperview()
             albumsViewController.didMove(toParent: nil)
@@ -245,24 +252,33 @@ final internal class AssetsGridViewController: UICollectionViewController, Picke
     }
     
     fileprivate func configureForNewAlbum() {
-        self.title = self.album.localizedTitle
-        self.startFetchingAssets()
+        title = album.localizedTitle
+        startFetchingAssets()
         
-        self.reloadDoneButtonState()
+        setupBarButtonItems()
         
-        if self.config?.singleViewMode ?? false {
+        if config?.singleViewMode == true {
             let titleView = AlbumTitleView()
             titleView.title = self.album.localizedTitle
             titleView.frame = CGRect(x: 0, y: 0, width: 200, height: 44)
             titleView.addTarget(self, action: #selector(changeAlbum(_:)), for: .touchUpInside)
-            self.navigationItem.titleView = titleView
+            navigationItem.titleView = titleView
         }
     }
     
     // MARK: - Button state
     
-    fileprivate func reloadDoneButtonState() {
-        self.doneButton.isEnabled = !self.selectedAssets.isEmpty
+    fileprivate func setupBarButtonItems() {
+        navigationItem.rightBarButtonItem = doneButton
+
+        if shouldHaveLeftCancelButton {
+            doneButton.isEnabled = !selectedAssets.isEmpty
+            return
+        }
+        
+        if selectedAssets.isEmpty {
+            navigationItem.rightBarButtonItem = cancelButton
+        }
     }
     
     // MARK: - Fetching
@@ -271,8 +287,8 @@ final internal class AssetsGridViewController: UICollectionViewController, Picke
         guard let fetchOptions = self.config?.assetFetchOptions() else {
             return
         }
-        if !self.showCameraButton {
-            self.emptyView = AlbumEmptyView(state: .loading)
+        if !showCameraButton {
+            emptyView = AlbumEmptyView(state: .loading)
         }
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let strongSelf = self else {
@@ -303,12 +319,12 @@ final internal class AssetsGridViewController: UICollectionViewController, Picke
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        self.emptyView?.layoutMargins = UIEdgeInsets(top: self.topLayoutGuide.length + 20, left: 20, bottom: self.bottomLayoutGuide.length + 20, right: 20)
+        emptyView?.layoutMargins = UIEdgeInsets(top: self.topLayoutGuide.length + 20, left: 20, bottom: self.bottomLayoutGuide.length + 20, right: 20)
     }
     
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
-        self.updateCollectionViewLayout()
+        updateCollectionViewLayout()
     }
     
     fileprivate func updateCollectionViewLayout() {
