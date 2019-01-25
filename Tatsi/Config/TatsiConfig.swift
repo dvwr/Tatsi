@@ -74,6 +74,11 @@ public struct TatsiConfig {
     /// If the delegate should finish immediately when maxNumberOfSelections is set to 1 and the user selects a photo
     public var finishImmediatelyWithMaximumOfOne = true
     
+    /// To restrict the selection to a date range
+    public var startDate: Date?
+    public var endDate: Date?
+
+    
     // MARK: - Internal features
     
     /// All the PHAssetCollectionSubtypes that should not be shown to the user. Based on the current config
@@ -131,7 +136,16 @@ public struct TatsiConfig {
             predicates.append(NSCompoundPredicate(orPredicateWithSubpredicates: mediaSubtypePredicates))
         }
         
+        if let start = startDate {
+            predicates.append(NSPredicate(format: "creationDate > %@", start as NSDate))
+        }
+        
+        if let end = endDate {
+            predicates.append(NSPredicate(format: "creationDate < %@", end as NSDate))
+        }
+        
         fetchOptions.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+        
         return fetchOptions
     }
     
