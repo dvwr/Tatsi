@@ -78,6 +78,12 @@ public struct TatsiConfig {
     public var startDate: Date?
     public var endDate: Date?
 
+    // Used as the navigation item prompt for album views
+    public var prompt: (() -> String?)?
+    
+    public var emptyAlbumTitle: (() -> String?)?
+    public var emptyAlbumMessage: (() -> String?)?
+
     
     // MARK: - Internal features
     

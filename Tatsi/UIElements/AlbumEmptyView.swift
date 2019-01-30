@@ -14,19 +14,19 @@ final internal class AlbumEmptyView: UIView {
         case loading
         case noAssets
         
-        var title: String {
+        func title(config: TatsiConfig?) -> String? {
             switch self {
             case .noAssets:
-                return LocalizableStrings.emptyAlbumTitle
+                return config?.emptyAlbumTitle?() ?? LocalizableStrings.emptyAlbumTitle
             case .loading:
                 return LocalizableStrings.albumLoading
             }
         }
         
-        var message: String? {
+        func message(config: TatsiConfig?) -> String? {
             switch self {
             case .noAssets:
-                return LocalizableStrings.emptyAlbumMessage
+                return config?.emptyAlbumMessage?() ?? LocalizableStrings.emptyAlbumMessage
             default:
                 return nil
             }
@@ -63,7 +63,10 @@ final internal class AlbumEmptyView: UIView {
         return stackView
     }()
     
-    init(state: EmptyState = .noAssets) {
+    let config: TatsiConfig?
+    
+    init(config: TatsiConfig?, state: EmptyState = .noAssets) {
+        self.config = config
         self.state = state
         
         super.init(frame: CGRect())
@@ -76,13 +79,14 @@ final internal class AlbumEmptyView: UIView {
     }
     
     private func setupView() {
-        self.addSubview(self.stackView)
+        addSubview(stackView)
         
-        self.titleLabel.text = self.state.title
-        self.messageLabel.text = self.state.message
-        self.messageLabel.isHidden = self.messageLabel.text == nil
+        titleLabel.text = state.title(config: config)
         
-        self.setupConstraints()
+        messageLabel.text = state.message(config: config)
+        messageLabel.isHidden = messageLabel.text == nil
+        
+        setupConstraints()
     }
     
     private func setupConstraints() {

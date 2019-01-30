@@ -77,6 +77,8 @@ final internal class AssetsGridViewController: UICollectionViewController, Picke
             guard let collectionView = self.collectionView else {
                 return
             }
+            
+            let cfg = config
             DispatchQueue.main.async {
                 UIView.performWithoutAnimation({
                     collectionView.reloadSections(IndexSet(integer: 0))
@@ -86,7 +88,7 @@ final internal class AssetsGridViewController: UICollectionViewController, Picke
                     for selectedAsset in self.selectedAssets {
                         self.selectAsset(selectedAsset)
                     }
-                    self.emptyView = collectionView.numberOfItems(inSection: 0) <= 0  ? AlbumEmptyView() : nil
+                    self.emptyView = collectionView.numberOfItems(inSection: 0) <= 0  ? AlbumEmptyView(config: cfg) : nil
                 })
                 
             }
@@ -253,6 +255,9 @@ final internal class AssetsGridViewController: UICollectionViewController, Picke
     
     fileprivate func configureForNewAlbum() {
         title = album.localizedTitle
+        
+        navigationItem.prompt = config?.prompt?()
+        
         startFetchingAssets()
         
         setupBarButtonItems()
@@ -288,7 +293,7 @@ final internal class AssetsGridViewController: UICollectionViewController, Picke
             return
         }
         if !showCameraButton {
-            emptyView = AlbumEmptyView(state: .loading)
+            emptyView = AlbumEmptyView(config: config, state: .loading)
         }
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let strongSelf = self else {
