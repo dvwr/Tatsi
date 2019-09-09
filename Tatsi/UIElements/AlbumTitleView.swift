@@ -33,7 +33,11 @@ final class AlbumTitleView: UIControl {
     
     lazy fileprivate var titleLabel: UILabel = {
         let label = UILabel()
-        label.textColor = .black
+        if #available(iOS 13.0, *) {
+            label.textColor = UIColor.label
+        } else {
+            label.textColor = UIColor.black
+        }
         label.font = UIFont.systemFont(ofSize: 17, weight: .semibold)
         label.isUserInteractionEnabled = false
         label.isAccessibilityElement = false
