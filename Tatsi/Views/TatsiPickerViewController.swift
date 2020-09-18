@@ -34,7 +34,7 @@ final public class TatsiPickerViewController: UINavigationController {
     
     internal func setIntialViewController() {
         switch PHPhotoLibrary.authorizationStatus() {
-        case .authorized:
+        case .authorized, .limited:
             //Authorized, show the album view or the album detail view.
             var album: PHAssetCollection?
             let userLibrary = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .smartAlbumUserLibrary, options: nil).firstObject
@@ -55,7 +55,7 @@ final public class TatsiPickerViewController: UINavigationController {
         case .denied, .notDetermined, .restricted:
             // Not authorized, show the view to give access
             self.viewControllers = [AuthorizationViewController()]
-        }
+}
     }
     
     private func showAlbumViewController(with collection: PHAssetCollection?) {
